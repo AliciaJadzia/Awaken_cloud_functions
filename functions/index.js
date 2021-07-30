@@ -24,6 +24,49 @@ exports.example = functions.https.onRequest((request, response) => {
     response.send("OK");
 });
 
+function sendNotification(token, title, message) {
+    const payload = {
+        token: token,
+        notification: {
+            title: title,
+            body: message
+        },
+        data: {
+            body: message,
+        }
+    };
+
+    admin.messaging().send(payload).then((response) => {
+        // Response is a message ID string.
+        console.log('Successfully sent message:', token, title, response);
+        return { success: true };
+    }).catch((error) => {
+        return { error: error.code };
+    });
+
+}
+
+exports.notificationTester = functions.https.onRequest((request, response) => {
+
+    var docRef = db.collection("users").doc("nO9eXqQw8UVJ5U7DY7zjALFbaZe2");
+    docRef.get().then((doc) => {
+        if (doc.exists) {
+            console.log("Document data:", doc.data().nickname);
+            let tk = doc.data().fcmID;
+            sendNotification(tk, "ring", "ring");
+            // uhour==hour && minute == uminute The proper way, kinda, we are only doing on the dot alarms
+
+        } else {
+            // doc.data() will be undefined in this case
+            console.log("No such document!");
+        }
+    }).catch((error) => {
+        console.log("Error getting document:", error);
+    });
+
+    response.send("OK");
+
+});
 
 function fetchUsersToAlert(hour, minute) {
     console.log('Fetching alarms for ', hour, minute);
@@ -35,7 +78,7 @@ function fetchUsersToAlert(hour, minute) {
             let uminute = doc.data().alarm_minute;
             let uid = doc.id.toString();
             // uhour==hour && minute == uminute The proper way, kinda, we are only doing on the dot alarms
-            if (uhour==hour) {
+            if (uhour == hour) {
                 ls.push(uid);
             }
             functions.logger.log(uid, hour, minute);
@@ -57,7 +100,7 @@ exports.heartbeat = functions.pubsub.schedule('every 60 minutes from 19:00 to 05
     // For demo purposes this is not acceptable but also the only thing i could come up with
     // So it stays. 
     const offset = 5; // Server is on UTC, no idea why. This sets it to CST.
-    var d = new Date(); 
+    var d = new Date();
     d.setHours(d.getHours() - offset); // My shame, my darkest hour.
     var tstamp = d;
     var h = tstamp.getHours();
@@ -65,8 +108,8 @@ exports.heartbeat = functions.pubsub.schedule('every 60 minutes from 19:00 to 05
     var s = tstamp.toString();
     console.log(s);
 
-    var usersToAlert = fetchUsersToAlert(h,m);
-    console.log("",usersToAlert);
+    var usersToAlert = fetchUsersToAlert(h, m);
+    console.log("", usersToAlert);
 
 
     return null;
