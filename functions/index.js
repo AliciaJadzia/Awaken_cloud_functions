@@ -70,15 +70,16 @@ exports.notificationTester = functions.https.onRequest((request, response) => {
 
 function fetchUsersToAlert(hour, minute) {
     console.log('Fetching alarms for ', hour, minute);
+    // Alarm cycle trigger.
     let ls = [];
-    // Get users
     db.collection('users').get().then(snapshot => {
         snapshot.docs.forEach(doc => {
             let uhour = doc.data().alarm_hour;
             let uminute = doc.data().alarm_minute;
             let uid = doc.id.toString();
-            // uhour==hour && minute == uminute The proper way, kinda, we are only doing on the dot alarms
+            let tk = doc.data().fcmID;
             if (uhour == hour) {
+                sendNotification(tk, "ring", "ring");
                 ls.push(uid);
             }
             functions.logger.log(uid, hour, minute);
@@ -114,3 +115,4 @@ exports.heartbeat = functions.pubsub.schedule('every 60 minutes from 19:00 to 05
 
     return null;
 });
+
